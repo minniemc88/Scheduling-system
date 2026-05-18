@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能自動排班系統</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e67e22;
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --border-color: #dcdde1;
+            --text-color: #2f3640;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 400px;
+            background: var(--card-bg);
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background: var(--card-bg);
+            padding: 28px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            display: none;
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 24px;
+            font-size: 1.6rem;
+            letter-spacing: 1px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .duty-inputs {
+            background-color: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 5px solid #c0392b;
+            margin-bottom: 16px;
+        }
+
+        .duty-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+
+        input[type="number"], input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            background-color: #fbfbfb;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background-color: #fff;
+        }
+
+        .help-text {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-top: 4px;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 24px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-check {
+            background-color: #dcdde1;
+            color: #2f3640;
+        }
+
+        .btn-check:hover { background-color: #b2bec3; }
+
+        .btn-submit {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-submit:hover { background-color: #d35400; }
+
+        .info-box {
+            background-color: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+            display: none;
+            border-left: 5px solid var(--accent-color);
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            text-align: center;
+            font-size: 1rem;
+            vertical-align: top;
+        }
+
+        th {
+            background-color: #f1f2f6;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .duty-tag {
+            font-weight: bold;
+            color: #c0392b;
+            background-color: #fde8e8;
+        }
+        
+        .standby-tag {
+            font-weight: bold;
+            color: #27ae60;
+            background-color: #e8f8f5;
+        }
+
+        .error-msg {
+            color: #c0392b;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            display: none;
+            font-weight: bold;
+        }
+
+        .standby-row {
+            display: block;
+            margin-bottom: 4px;
+        }
+        .standby-row:last-child {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container, .login-box { padding: 18px; }
+            .duty-grid { grid-template-columns: 1fr; gap: 12px; }
+        }
+    </style>
+</head>
+<body oncontextmenu="window.event.returnValue=false">
+
+<!-- 🔒 管理員登入區塊 -->
+<div class="login-box" id="loginBox">
+    <h2>🔒 管理員登入</h2>
+    <div class="form-group">
+        <label for="username">管理員帳號</label>
+        <input type="text" id="username" placeholder="請輸入帳號" autocomplete="off">
+    </div>
+    <div class="form-group">
+        <label for="password">安全密碼</label>
+        <input type="password" id="password" placeholder="請輸入密碼" onkeypress="handleKeyPress(event)">
+    </div>
+    <button type="button" class="btn-submit" onclick="checkLogin()">登入系統</button>
+    <div id="loginError" class="error-msg">❌ 帳號或密碼錯誤，請重新輸入！</div>
+</div>
+
+<!-- ⚙️ 主排班系統區塊 -->
+<div class="container" id="mainSystem">
+    <h2>⏱️ 智能自動排班系統</h2>
+    
+    <div class="form-group">
+        <label for="totalCount">該次總人數</label>
+        <input type="number" id="totalCount" value="42" min="15">
+        <div class="help-text">請輸入當天參與排班的總代號上限（例如 42 代表擁有 1~42 號）。</div>
+    </div>
+
+    <div class="form-group">
+        <label for="leavePeople">請假人員號碼 (公假/慰休/補休)</label>
+        <input type="text" id="leavePeople" placeholder="例如: 5, 12, 23 (留空代表無)">
+        <div class="help-text" style="color: #c0392b;">⚠️ 填入此處的號碼將完全不參與當值與備勤。</div>
+    </div>
+
+    <div class="duty-inputs">
+        <label style="color: #c0392b; font-size: 1rem;">✍️ 請輸入各時段當值人員 (各固定 5 名)</label>
+        <div class="help-text">請用逗號或空格隔開 5 個號碼，且應落於 1~總人數 區間內。</div>
+        <div class="duty-grid">
+            <div class="form-group">
+                <label for="d1_input">00-02 當值</label>
+                <input type="text" id="d1_input" placeholder="5個號碼">
+            </div>
+            <div class="form-group">
+                <label for="d2_input">02-04 當值</label>
+                <input type="text" id="d2_input" placeholder="5個號碼">
+            </div>
+            <div class="form-group">
+                <label for="d3_input">04-06 當值</label>
+                <input type="text" id="d3_input" placeholder="5個號碼">
+            </div>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button type="button" class="btn-check" onclick="checkNumbers()">驗證當日人數</button>
+        <button type="button" class="btn-submit" onclick="generateSchedule()">產生排班表</button>
+    </div>
+
+    <div id="infoBox" class="info-box"></div>
+
+    <table id="scheduleTable">
+        <thead>
+            <tr>
+                <th style="width: 20%;">時段</th>
+                <th>00-02</th>
+                <th>02-04</th>
+                <th>04-06</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="duty-tag">當值</td>
+                <td id="d1_cell"></td>
+                <td id="d2_cell"></td>
+                <td id="d3_cell"></td>
+            </tr>
+            <tr>
+                <td class="standby-tag">備勤</td>
+                <td id="s1_cell"></td>
+                <td id="s2_cell"></td>
+                <td id="s3_cell"></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // 🛡️ 1. JavaScript 快捷鍵防護
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'F12') {
+            e.preventDefault();
+            return false;
+        }
+        if (e.ctrlKey && (e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'i' || e.key === 'j') || e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 🛡️ 2. 密碼混淆 (Base64 加密：bin / 1002)
+    const _0x4a2a = "Ymlu";  
+    const _0x1b9d = "MTAwMg"; 
+
+    function checkLogin() {
+        const user = document.getElementById('username').value.trim();
+        const pass = document.getElementById('password').value.trim();
+        const errorMsg = document.getElementById('loginError');
+
+        if (user === atob(_0x4a2a) && pass === atob(_0x1b9d)) {
+            document.getElementById('loginBox').style.display = 'none';
+            document.getElementById('mainSystem').style.display = 'block';
+            document.body.style.alignItems = 'flex-start'; 
+        } else {
+            errorMsg.style.display = 'block';
+        }
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === "Enter") { checkLogin(); }
+    }
+
+    // 數字格式化輔助函式：將小於 10 的數字前面補 0
+    function formatPad(num) {
+        return num < 10 ? '0' + num : num.toString();
+    }
+
+    // ------------------ 排班系統核心邏輯 ------------------
+
+    function parseNumbers(id) {
+        const input = document.getElementById(id).value;
+        if (!input.trim()) return [];
+        return [...new Set(input.split(/[\s,，]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n)))];
+    }
+
+    function calculateData() {
+        const totalInput = parseInt(document.getElementById('totalCount').value) || 0;
+        const leaveList = parseNumbers('leavePeople');
+        
+        const d1 = parseNumbers('d1_input');
+        const d2 = parseNumbers('d2_input');
+        const d3 = parseNumbers('d3_input');
+        
+        const rawAllDuty = [
+            ...document.getElementById('d1_input').value.split(/[\s,，]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n)),
+            ...document.getElementById('d2_input').value.split(/[\s,，]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n)),
+            ...document.getElementById('d3_input').value.split(/[\s,，]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n))
+        ];
+        const uniqueDuty = [...new Set(rawAllDuty)];
+
+        const allPeople = Array.from({length: totalInput}, (_, i) => i + 1);
+        const workers = allPeople.filter(n => !leaveList.includes(n));
+        const pureStandby = workers.filter(n => !uniqueDuty.includes(n));
+
+        return {
+            totalInput, leaveList, workers, pureStandby,
+            d1, d2, d3, rawAllDuty, uniqueDuty,
+            availableCount: workers.length
+        };
+    }
+
+    function checkNumbers() {
+        const data = calculateData();
+        const infoBox = document.getElementById('infoBox');
+        infoBox.style.display = 'block';
+
+        const checkOutOfRange = (nums) => nums.filter(n => n < 1 || n > data.totalInput);
+        
+        const leaveOutOfRange = checkOutOfRange(data.leaveList);
+        const dutyOutOfRange = checkOutOfRange(data.uniqueDuty);
+
+        if (leaveOutOfRange.length > 0) {
+            infoBox.innerHTML = `<span style="color:#c0392b; font-weight:bold;">❌ 錯誤：請假名單中號碼 [ ${leaveOutOfRange.map(formatPad).join(', ')} ] 超出編制！必須介於 01 到 ${formatPad(data.totalInput)} 之間。</span>`;
+            return false;
+        }
+
+        if (dutyOutOfRange.length > 0) {
+            infoBox.innerHTML = `<span style="color:#c0392b; font-weight:bold;">❌ 錯誤：當值名單中號碼 [ ${dutyOutOfRange.map(formatPad).join(', ')} ] 超出編制！必須介於 01 到 ${formatPad(data.totalInput)} 之間。</span>`;
+            return false;
+        }
+
+        if (data.d1.length !== 5 || data.d2.length !== 5 || data.d3.length !== 5) {
+            infoBox.innerHTML = `<span style="color:#c0392b; font-weight:bold;">❌ 錯誤：每個時段的當值人員必須剛好輸入 5 個人！（目前輸入為：${data.d1.length}, ${data.d2.length}, ${data.d3.length}人）</span>`;
+            return false;
+        }
+
+        if (data.rawAllDuty.length !== 15 || data.uniqueDuty.length !== 15) {
+            let duplicates = data.rawAllDuty.filter((item, index) => data.rawAllDuty.indexOf(item) !== index);
+            infoBox.innerHTML = `<span style="color:#c0392b; font-weight:bold;">❌ 錯誤：當值名單有人重複！重複的號碼為：[ ${[...new Set(duplicates)].map(formatPad).join(', ')} ]。每人只能當值 1 次。</span>`;
+            return false;
+        }
+
+        const dutyLeaveConflict = data.uniqueDuty.filter(n => data.leaveList.includes(n));
+        if (dutyLeaveConflict.length > 0) {
+            infoBox.innerHTML = `<span style="color:#c0392b; font-weight:bold;">❌ 錯誤：號碼 [ ${dutyLeaveConflict.map(formatPad).join(', ')} ] 已被列為請假人員，無法安排當值！</span>`;
+            return false;
+        }
+
+        const totalStandbySlots = (data.availableCount * 2) - 15;
+
+        if (totalStandbySlots < 0) {
+            infoBox.innerHTML = `<span style="color:#c0392b; font-weight:bold;">❌ 錯誤：扣除請假後，實際上班人數（${data.availableCount}人）不足以應付 15 人次的當值需求！</span>`;
+            return false;
+        }
+
+        let html = `
+            <strong>📊 當日排班數據安全驗證：</strong><br>
+            • 總登記代號：01 ~ ${formatPad(data.totalInput)} 號 (號碼範圍驗證通過)<br>
+            • 請假不排班：<strong>${data.leaveList.length}</strong> 人<br>
+            • 實際上班人數：<strong>${data.availableCount}</strong> 人<br>
+            • 當值總人次：15 次 (每班 5 人，無重複無請假)<br>
+            • 備勤總需求：<strong>${totalStandbySlots}</strong> 人次<br>
+            <span style="color:#27ae60; font-weight:bold;">✅ 驗證成功：點擊「產生排班表」後，當值與備勤號碼皆會由小到大排列輸出。</span>
+        `;
+        infoBox.innerHTML = html;
+        return true;
+    }
+
+    // 🌟 核心修改：將備勤陣列切成每 2 個一列，補零、同時以「. 」做分隔與結尾
+    function formatStandbyToChunks(arr) {
+        if (arr.length === 0) return '無';
+        let resultHtml = '';
+        let paddedArr = arr.map(n => formatPad(n) + '.'); 
+        
+        // 迴圈步進值改為 2，達成 2 人一列的效果
+        for (let i = 0; i < paddedArr.length; i += 2) {
+            let chunk = paddedArr.slice(i, i + 2);
+            resultHtml += `<span class="standby-row">${chunk.join(' ')}</span>`;
+        }
+        return resultHtml;
+    }
+
+    function generateSchedule() {
+        if (!checkNumbers()) return; 
+        
+        const data = calculateData();
+        let standbyPool = [...data.uniqueDuty, ...data.pureStandby, ...data.pureStandby];
+
+        const totalStandbySlots = (data.availableCount * 2) - 15;
+        const baseSize = Math.floor(totalStandbySlots / 3);
+        const remainder = totalStandbySlots % 3;
+
+        let size1 = baseSize + (remainder > 0 ? 1 : 0);
+        let size2 = baseSize + (remainder > 1 ? 1 : 0);
+        let size3 = baseSize;
+
+        let s1 = [], s2 = [], s3 = [];
+
+        function distribute(pool, s1_max, s2_max, s3_max) {
+            for (let attempt = 0; attempt < 500; attempt++) {
+                let tempPool = [...pool];
+                tempPool.sort(() => Math.random() - 0.5);
+
+                let ts1 = [], ts2 = [], ts3 = [];
+
+                for (let num of tempPool) {
+                    if (ts1.length < s1_max && !data.d1.includes(num) && !ts1.includes(num)) {
+                        ts1.push(num);
+                    } else if (ts2.length < s2_max && !data.d2.includes(num) && !ts2.includes(num)) {
+                        ts2.push(num);
+                    } else if (ts3.length < s3_max && !data.d3.includes(num) && !ts3.includes(num)) {
+                        ts3.push(num);
+                    }
+                }
+
+                if (ts1.length === s1_max && ts2.length === s2_max && ts3.length === s3_max) {
+                    s1 = ts1; s2 = ts2; s3 = ts3;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        const success = distribute(standbyPool, size1, size2, size3);
+
+        if (!success) {
+            alert("⚠️ 目前人員組合較為特殊，系統計算後有微幅衝突。請試著微調當值人員的時段順序後，再次點擊產生！");
+            return;
+        }
+
+        // 核心排序
+        data.d1.sort((a, b) => a - b);
+        data.d2.sort((a, b) => a - b);
+        data.d3.sort((a, b) => a - b);
+        
+        s1.sort((a, b) => a - b);
+        s2.sort((a, b) => a - b);
+        s3.sort((a, b) => a - b);
+
+        // 當值人員渲染
+        document.getElementById('d1_cell').innerHTML = data.d1.map(n => `<b>${formatPad(n)}.</b>`).join(' ');
+        document.getElementById('d2_cell').innerHTML = data.d2.map(n => `<b>${formatPad(n)}.</b>`).join(' ');
+        document.getElementById('d3_cell').innerHTML = data.d3.map(n => `<b>${formatPad(n)}.</b>`).join(' ');
+
+        // 備勤人員渲染（已套用 2 人分列邏輯）
+        document.getElementById('s1_cell').innerHTML = formatStandbyToChunks(s1);
+        document.getElementById('s2_cell').innerHTML = formatStandbyToChunks(s2);
+        document.getElementById('s3_cell').innerHTML = formatStandbyToChunks(s3);
+
+        document.getElementById('scheduleTable').style.display = 'table';
+    }
+</script>
+
+</body>
+</html>
